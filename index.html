@@ -1,273 +1,201 @@
-<!DOCTYPE html>
+<!doctype html>
+
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cosmic Creator Challenge</title>
-    <!-- Load Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'star-purple': '#4c1d95',
-                        'star-pink': '#ec4899',
-                        'space-dark': '#0f172a',
-                        'space-light': '#1e293b',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        /* Reusing the simple loading spinner concept for consistency */
-        .loading-icon {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: fixed;
-            inset: 0;
-            background-color: rgba(15, 23, 42, 0.95);
-            z-index: 9999;
-            transition: opacity 0.3s ease;
-        }
-        .spinner {
-            display: flex;
-            gap: 4px;
-        }
-        .spinner div {
-            width: 8px;
-            height: 32px;
-            background-color: #ec4899;
-            animation: stretch 0.7s infinite alternate;
-            border-radius: 2px;
-        }
-        .spinner div:nth-child(2) { animation-delay: 0.1s; }
-        .spinner div:nth-child(3) { animation-delay: 0.2s; }
-        .spinner div:nth-child(4) { animation-delay: 0.3s; }
-
-        @keyframes stretch {
-            0% { transform: scaleY(0.4); }
-            100% { transform: scaleY(1.0); }
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>HTML Link Formatter — SID, Username, Profile Link</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass: rgba(255,255,255,0.03)}
+    html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
+    body{background:linear-gradient(180deg,#071026 0%, #081426 60%);color:#e6eef6;display:flex;align-items:flex-start;justify-content:center;padding:36px}
+    .container{width:100%;max-width:980px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:22px;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
+    h1{margin:0 0 10px;font-size:20px}
+    p.lead{margin:0 0 18px;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr 380px;gap:16px}
+    .card{background:var(--card);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    textarea,input[type=text]{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:var(--glass);color:inherit;font-size:14px}
+    textarea{min-height:140px;resize:vertical}
+    .row{display:flex;gap:10px;align-items:center}
+    .btn{background:var(--accent);color:#042027;padding:8px 12px;border-radius:8px;border:0;font-weight:600;cursor:pointer}
+    .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+    .small{font-size:13px;color:var(--muted)}
+    pre.output{white-space:pre-wrap;background:rgba(0,0,0,0.25);padding:12px;border-radius:8px;min-height:120px;overflow:auto}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .meta{font-size:12px;color:var(--muted);margin-top:8px}
+    .radio{display:inline-flex;align-items:center;gap:8px;margin-right:12px}
+    footer{margin-top:12px;color:var(--muted);font-size:13px}
+  </style>
 </head>
+<body>
+  <div class="container">
+    <h1>Link Formatter — generate JS entries</h1>
+    <p class="lead">Paste raw rows (each row = <code>sid, username, profileLink</code>) — separate fields by commas. We'll auto-create objects in this exact format:<br><code>{ profilePic: '#', username: '#', coverSong: 'User not post any songs', songLink: '#', songScore: 0, totalScore: 0,sid:'#', id: 2 },</code></p><div class="grid">
+  <div class="card">
+    <label for="raw">Raw input (one record per line):</label>
+    <textarea id="raw" placeholder="12345, John_Doe, https://example.com/avatar.jpg\n67890, Alice, #"></textarea>
 
-<body class="bg-space-dark min-h-screen text-gray-100 font-sans">
-
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="loading-icon">
-        <div class="spinner">
-            <div></div>
-            <div></div>
-            <div></div>
-            <div></div>
-        </div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div class="radio">
+        <input type="radio" name="type" id="type-original" value="original" checked>
+        <label for="type-original" class="small">Original user</label>
+      </div>
+      <div class="radio">
+        <input type="radio" name="type" id="type-duplicate" value="duplicate">
+        <label for="type-duplicate" class="small">Make duplicate</label>
+      </div>
     </div>
 
-    <!-- Main Application Wrapper -->
-    <div id="app" class="max-w-xl mx-auto p-4 md:p-6 transition-opacity duration-500 opacity-0">
-        <!-- Content will be injected here by JavaScript -->
+    <div class="controls">
+      <button id="generate" class="btn">Generate</button>
+      <button id="copy" class="btn secondary">Copy</button>
+      <button id="download" class="btn secondary">Download JSON</button>
+      <button id="clear" class="btn secondary">Clear</button>
     </div>
+    <div class="meta">Tip: input can be a single line or many lines. Fields are trimmed. If profile link is missing or is "#" we keep it as '#'.</div>
+  </div>
 
-    <!-- Firebase Imports -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+  <div class="card">
+    <label for="output">Generated output (preview)</label>
+    <pre id="output" class="output">// Generated objects will appear here</pre>
 
-        // --- 1. SIMULATED BASE DATA (Configuration from your backend) ---
-        // This structure mimics the complex JSON data in your original code.
-        const baseData = {
-            token_user_id: "0",
-            userId: "0",
-            language: "en-US",
-            promotion: {
-                id: "7890",
-                name: "Cosmic Creator Challenge",
-                slogan: "Forge Your Art in the Stars!",
-                begin_time: "2025-10-01 00:00:00",
-                end_time: "2025-11-30 23:59:59",
-                layout: {
-                    banner: {
-                        image: "https://placehold.co/1024x280/4c1d95/f1f5f9?text=COSMIC+CREATOR+CHALLENGE"
-                    },
-                    ruleAwards: {
-                        content: "Top 3 creators will receive exclusive Star-Tier rewards: $500, a Verified Badge, and 1,000,000 in-game Star Gems!",
-                        link: "View Full Rules",
-                    },
-                    rank: [
-                        { name: "Nebula Score (Total)", description: "Overall contribution score." },
-                        { name: "Weekly Star Power", description: "Activity and engagement this week." },
-                    ],
-                },
-            }
-        };
+    <label style="margin-top:10px">Saved entries (localStorage)</label>
+    <pre id="saved" class="output">// none</pre>
 
-        // --- 2. FIREBASE INITIALIZATION AND AUTHENTICATION (Mandatory Globals) ---
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+  </div>
+</div>
+<footer>Behavior: only the <strong>profilePic</strong>, <strong>username</strong> and <strong>sid</strong> values are changed. Everything else remains exactly as in the requested format. Data is saved to <code>localStorage</code> automatically under key <code>linkFormatter.entries</code>.</footer>
 
-        // Initialize Firebase App
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+  </div>  <script>
+    // Utility: parse input rows into triples
+    function parseRows(text) {
+      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const rows = [];
+      for (const line of lines) {
+        // allow commas inside URLs if wrapped? We'll split on first two commas
+        const parts = line.split(',');
+        if (parts.length < 2) continue; // skip invalid
+        const sid = parts[0].trim();
+        const username = (parts[1] || '').trim();
+        // remaining joined as link in case link contains commas
+        const link = parts.slice(2).join(',').trim() || '#';
+        rows.push({sid, username, link});
+      }
+      return rows;
+    }
 
-        /**
-         * Simulates fetching advanced user details (Avatar and SID) based on the UID.
-         * In a real Starmaker application, this would be an API call to their backend.
-         * @param {string} userId - The authenticated Firebase UID.
-         * @returns {{userId: string, sid: string, avatarUrl: string}}
-         */
-        function fetchAdvancedUserDetails(userId) {
-            // Generate a simple, consistent mock SID based on the user ID
-            const sidSuffix = userId.substring(0, 8).replace(/[^0-9A-Za-z]/g, '');
-
-            return {
-                userId: userId,
-                // Simulated Starmaker ID/Username (SID)
-                sid: `CosmicUser-${sidSuffix}`,
-                // Placeholder avatar image, using the first letter of the UID
-                avatarUrl: `https://placehold.co/100x100/ec4899/ffffff?text=${userId.charAt(0)}`,
-            };
+    // Build the exact text format requested
+    function buildObjects(rows, mode) {
+      // mode: 'original' or 'duplicate'
+      const entries = [];
+      for (const r of rows) {
+        const profilePic = r.link && r.link !== '' ? r.link : '#';
+        const username = r.username || '';
+        const sid = r.sid || '';
+        const objText = `{ profilePic: '${escapeSingle(profilePic)}', username: '${escapeSingle(username)}', coverSong: 'User not post any songs', songLink: '#', songScore: 0, totalScore: 0,sid:'${escapeSingle(sid)}', id: 2 },`;
+        entries.push(objText);
+        if (mode === 'duplicate') {
+          // create a duplicate entry (identical text) — per request we only change pic/username/sid, keep other fields same
+          entries.push(objText);
         }
+      }
+      return entries;
+    }
 
-        /**
-         * Authenticates the user using the custom token/anonymously and fetches enhanced details.
-         * @returns {Promise<{userId: string, sid: string, avatarUrl: string}>}
-         */
-        async function authenticateAndFetchDetails() {
-            try {
-                if (initialAuthToken) {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                
-                const userId = auth.currentUser?.uid || 'GUEST_USER';
-                // Update baseData with the real userId (if needed for legacy compatibility)
-                baseData.userId = userId;
-                baseData.token_user_id = userId;
+    function escapeSingle(s) {
+      return String(s).replace(/\\/g,'\\\\').replace(/'/g, "\\'");
+    }
 
-                // Fetch the advanced details
-                return fetchAdvancedUserDetails(userId);
+    function saveToLocal(entriesArray) {
+      // We'll store an array of objects for convenience
+      const parsed = entriesArray.map(txt => {
+        // crude attempt to extract profilePic, username, sid from the generated text so localStorage holds structured data
+        const mPic = /profilePic: '([^']*)'/.exec(txt);
+        const mUser = /username: '([^']*)'/.exec(txt);
+        const mSid = /sid:'([^']*)'/.exec(txt);
+        return { profilePic: mPic?mPic[1]:'#', username: mUser?mUser[1]:'', sid: mSid?mSid[1]:'' };
+      });
+      localStorage.setItem('linkFormatter.entries', JSON.stringify(parsed));
+      return parsed;
+    }
 
-            } catch (error) {
-                console.error("Firebase Auth Error:", error);
-                return fetchAdvancedUserDetails('AUTH_FAILED_USER');
-            }
-        }
+    function loadSaved() {
+      try {
+        const raw = localStorage.getItem('linkFormatter.entries');
+        if (!raw) return [];
+        return JSON.parse(raw);
+      } catch(e){return []}
+    }
 
-        /**
-         * Renders the event UI and displays the authenticated user details, including SID and Avatar.
-         * @param {{userId: string, sid: string, avatarUrl: string}} userDetails - The enhanced user details.
-         */
-        function renderEventUI(userDetails) {
-            const { userId, sid, avatarUrl } = userDetails;
-            const promotion = baseData.promotion;
-            const appElement = document.getElementById('app');
+    // DOM
+    const rawEl = document.getElementById('raw');
+    const outEl = document.getElementById('output');
+    const savedEl = document.getElementById('saved');
+    const generateBtn = document.getElementById('generate');
+    const copyBtn = document.getElementById('copy');
+    const downloadBtn = document.getElementById('download');
+    const clearBtn = document.getElementById('clear');
 
-            // HTML Structure for the new event
-            appElement.innerHTML = `
-                <!-- User ID Card (Updated to include Avatar and SID) -->
-                <div class="bg-space-light p-4 rounded-xl shadow-xl mb-6 border-2 border-star-purple flex items-center">
-                    <!-- Avatar -->
-                    <img src="${avatarUrl}" 
-                         alt="User Avatar" 
-                         class="w-16 h-16 rounded-full border-2 border-star-pink mr-4 object-cover flex-shrink-0" 
-                         onerror="this.onerror=null;this.src='https://placehold.co/100x100/1e293b/94a3b8?text=USER'">
-                    
-                    <!-- Details -->
-                    <div class="min-w-0">
-                        <h2 class="text-xl font-extrabold text-white truncate" title="${sid}">${sid}</h2>
-                        <p class="text-xs font-semibold uppercase text-star-pink mb-1">
-                            Status: <span class="font-bold text-green-400">Successfully Entered Event</span>
-                        </p>
-                        <p class="text-xs break-all mt-1">
-                            UID: <span id="display-user-id" class="text-gray-300 font-mono">${userId}</span>
-                        </p>
-                    </div>
-                </div>
+    function refreshSavedView(){
+      const s = loadSaved();
+      if (!s.length) savedEl.textContent = '// none';
+      else savedEl.textContent = JSON.stringify(s, null, 2);
+    }
 
-                <!-- Banner Section -->
-                <div class="rounded-xl overflow-hidden mb-6 shadow-2xl">
-                    <img src="${promotion.layout.banner.image}" alt="${promotion.name} Banner" class="w-full h-auto object-cover">
-                </div>
+    // Auto-load saved on open
+    (function(){
+      const savedText = loadSaved();
+      refreshSavedView();
+      // restore previous raw input if present
+      const prevRaw = localStorage.getItem('linkFormatter.raw');
+      if (prevRaw) rawEl.value = prevRaw;
+    })();
 
-                <!-- Event Details Card -->
-                <div class="bg-space-light p-5 rounded-xl shadow-xl mb-6">
-                    <h1 class="text-3xl font-extrabold mb-1 text-white">${promotion.name}</h1>
-                    <p class="text-star-pink text-lg font-medium mb-4 italic">${promotion.slogan}</p>
-                    
-                    <div class="flex justify-between items-center text-sm mb-4">
-                        <span class="bg-star-purple px-3 py-1 rounded-full font-semibold">Start: ${new Date(promotion.begin_time).toLocaleDateString()}</span>
-                        <span class="bg-red-700 px-3 py-1 rounded-full font-semibold">End: ${new Date(promotion.end_time).toLocaleDateString()}</span>
-                    </div>
+    rawEl.addEventListener('input', ()=>{
+      localStorage.setItem('linkFormatter.raw', rawEl.value);
+    });
 
-                    <!-- Rules & Awards -->
-                    <div class="mt-5 pt-4 border-t border-gray-700">
-                        <h2 class="text-xl font-bold mb-2 text-star-pink">Galactic Rewards</h2>
-                        <p class="text-gray-300 mb-4">${promotion.layout.ruleAwards.content}</p>
-                        <button class="w-full bg-star-pink hover:bg-star-purple transition-colors duration-200 text-white font-bold py-3 px-4 rounded-lg shadow-lg">
-                            ${promotion.layout.ruleAwards.link}
-                        </button>
-                    </div>
+    generateBtn.addEventListener('click', ()=>{
+      const mode = document.querySelector('input[name="type"]:checked').value;
+      const rows = parseRows(rawEl.value);
+      if (!rows.length) {
+        outEl.textContent = '// No valid rows found. Expected format: sid, username, link';
+        return;
+      }
+      const objs = buildObjects(rows, mode);
+      outEl.textContent = objs.join('\n');
+      const saved = saveToLocal(objs);
+      refreshSavedView();
+    });
 
-                    <!-- Ranking Types -->
-                    <div class="mt-6">
-                        <h2 class="text-xl font-bold mb-3 text-white">Event Rankings</h2>
-                        <div class="space-y-3">
-                            ${promotion.layout.rank.map(rank => `
-                                <div class="p-3 bg-gray-700/50 rounded-lg flex items-center shadow-md">
-                                    <svg class="w-6 h-6 mr-3 text-yellow-400 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15l-5.878 3.09 1.123-6.545-4.757-4.634 6.572-.955L10 0l2.93 5.956 6.572.955-4.757 4.634 1.123 6.545L10 15z"/></svg>
-                                    <div>
-                                        <p class="font-semibold text-gray-100">${rank.name}</p>
-                                        <p class="text-xs text-gray-400">${rank.description}</p>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
+    copyBtn.addEventListener('click', async ()=>{
+      const txt = outEl.textContent || '';
+      try{
+        await navigator.clipboard.writeText(txt);
+        copyBtn.textContent = 'Copied!';
+        setTimeout(()=>copyBtn.textContent='Copy',900);
+      }catch(e){
+        alert('Copy failed: '+e.message);
+      }
+    });
 
-                <!-- Call to Action -->
-                <div class="sticky bottom-0 p-4 bg-space-dark/90 backdrop-blur-sm rounded-t-xl shadow-2xl border-t border-gray-700">
-                     <button class="w-full bg-green-500 hover:bg-green-600 transition-colors duration-200 text-white font-extrabold text-lg py-4 px-4 rounded-xl shadow-2xl">
-                        JOIN THE CHALLENGE NOW!
-                    </button>
-                </div>
-            `;
-            
-            // Fade in the content
-            appElement.classList.remove('opacity-0');
-        }
+    downloadBtn.addEventListener('click', ()=>{
+      const saved = loadSaved();
+      const blob = new Blob([JSON.stringify(saved, null, 2)], {type:'application/json'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'link-formatter-entries.json';
+      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
 
-        // --- 3. EXECUTION FLOW ---
-        window.onload = async () => {
-            const loadingOverlay = document.getElementById('loading-overlay');
-
-            try {
-                // 1. Authenticate the user and fetch advanced details
-                const userDetails = await authenticateAndFetchDetails();
-
-                // 2. Render the UI with the fetched user details
-                renderEventUI(userDetails);
-
-            } catch (error) {
-                console.error("Failed to load event:", error);
-                document.getElementById('app').innerHTML = `<div class="text-center text-red-500 p-8">Error loading event data. Please refresh.</div>`;
-            } finally {
-                // 3. Hide the loading spinner
-                loadingOverlay.style.opacity = '0';
-                setTimeout(() => loadingOverlay.classList.add('hidden'), 300);
-            }
-        };
-
-    </script>
-</body>
+    clearBtn.addEventListener('click', ()=>{
+      if (!confirm('Clear raw input and saved entries?')) return;
+      rawEl.value = '';
+      outEl.textContent = '// Generated objects will appear here';
+      localStorage.removeItem('linkFormatter.raw');
+      localStorage.removeItem('linkFormatter.entries');
+      refreshSavedView();
+    });
+  </script></body>
 </html>
