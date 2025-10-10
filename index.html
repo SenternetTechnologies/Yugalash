@@ -1,201 +1,81 @@
-<!doctype html>
-
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>HTML Link Formatter — SID, Username, Profile Link</title>
-  <style>
-    :root{--bg:#0f1724;--card:#0b1220;--accent:#06b6d4;--muted:#94a3b8;--glass: rgba(255,255,255,0.03)}
-    html,body{height:100%;margin:0;font-family:Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial}
-    body{background:linear-gradient(180deg,#071026 0%, #081426 60%);color:#e6eef6;display:flex;align-items:flex-start;justify-content:center;padding:36px}
-    .container{width:100%;max-width:980px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:12px;padding:22px;box-shadow:0 6px 30px rgba(2,6,23,0.6)}
-    h1{margin:0 0 10px;font-size:20px}
-    p.lead{margin:0 0 18px;color:var(--muted)}
-    .grid{display:grid;grid-template-columns:1fr 380px;gap:16px}
-    .card{background:var(--card);padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
-    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
-    textarea,input[type=text]{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:var(--glass);color:inherit;font-size:14px}
-    textarea{min-height:140px;resize:vertical}
-    .row{display:flex;gap:10px;align-items:center}
-    .btn{background:var(--accent);color:#042027;padding:8px 12px;border-radius:8px;border:0;font-weight:600;cursor:pointer}
-    .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
-    .small{font-size:13px;color:var(--muted)}
-    pre.output{white-space:pre-wrap;background:rgba(0,0,0,0.25);padding:12px;border-radius:8px;min-height:120px;overflow:auto}
-    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-    .meta{font-size:12px;color:var(--muted);margin-top:8px}
-    .radio{display:inline-flex;align-items:center;gap:8px;margin-right:12px}
-    footer{margin-top:12px;color:var(--muted);font-size:13px}
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1>Link Formatter — generate JS entries</h1>
-    <p class="lead">Paste raw rows (each row = <code>sid, username, profileLink</code>) — separate fields by commas. We'll auto-create objects in this exact format:<br><code>{ profilePic: '#', username: '#', coverSong: 'User not post any songs', songLink: '#', songScore: 0, totalScore: 0,sid:'#', id: 2 },</code></p><div class="grid">
-  <div class="card">
-    <label for="raw">Raw input (one record per line):</label>
-    <textarea id="raw" placeholder="12345, John_Doe, https://example.com/avatar.jpg\n67890, Alice, #"></textarea>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Background Webpage</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS to ensure the video covers the entire viewport */
+        #bg-video {
+            position: fixed;
+            /* Center the video */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
 
-    <div style="margin-top:10px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-      <div class="radio">
-        <input type="radio" name="type" id="type-original" value="original" checked>
-        <label for="type-original" class="small">Original user</label>
-      </div>
-      <div class="radio">
-        <input type="radio" name="type" id="type-duplicate" value="duplicate">
-        <label for="type-duplicate" class="small">Make duplicate</label>
-      </div>
-    </div>
-
-    <div class="controls">
-      <button id="generate" class="btn">Generate</button>
-      <button id="copy" class="btn secondary">Copy</button>
-      <button id="download" class="btn secondary">Download JSON</button>
-      <button id="clear" class="btn secondary">Clear</button>
-    </div>
-    <div class="meta">Tip: input can be a single line or many lines. Fields are trimmed. If profile link is missing or is "#" we keep it as '#'.</div>
-  </div>
-
-  <div class="card">
-    <label for="output">Generated output (preview)</label>
-    <pre id="output" class="output">// Generated objects will appear here</pre>
-
-    <label style="margin-top:10px">Saved entries (localStorage)</label>
-    <pre id="saved" class="output">// none</pre>
-
-  </div>
-</div>
-<footer>Behavior: only the <strong>profilePic</strong>, <strong>username</strong> and <strong>sid</strong> values are changed. Everything else remains exactly as in the requested format. Data is saved to <code>localStorage</code> automatically under key <code>linkFormatter.entries</code>.</footer>
-
-  </div>  <script>
-    // Utility: parse input rows into triples
-    function parseRows(text) {
-      const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-      const rows = [];
-      for (const line of lines) {
-        // allow commas inside URLs if wrapped? We'll split on first two commas
-        const parts = line.split(',');
-        if (parts.length < 2) continue; // skip invalid
-        const sid = parts[0].trim();
-        const username = (parts[1] || '').trim();
-        // remaining joined as link in case link contains commas
-        const link = parts.slice(2).join(',').trim() || '#';
-        rows.push({sid, username, link});
-      }
-      return rows;
-    }
-
-    // Build the exact text format requested
-    function buildObjects(rows, mode) {
-      // mode: 'original' or 'duplicate'
-      const entries = [];
-      for (const r of rows) {
-        const profilePic = r.link && r.link !== '' ? r.link : '#';
-        const username = r.username || '';
-        const sid = r.sid || '';
-        const objText = `{ profilePic: '${escapeSingle(profilePic)}', username: '${escapeSingle(username)}', coverSong: 'User not post any songs', songLink: '#', songScore: 0, totalScore: 0,sid:'${escapeSingle(sid)}', id: 2 },`;
-        entries.push(objText);
-        if (mode === 'duplicate') {
-          // create a duplicate entry (identical text) — per request we only change pic/username/sid, keep other fields same
-          entries.push(objText);
+            /* Ensure it covers the screen, potentially cropping edges */
+            min-width: 100%;
+            min-height: 100%;
+            width: auto;
+            height: auto;
+            z-index: -10; /* Push it behind the main content */
+            object-fit: cover; /* Ensures the video covers the element's entire content box */
         }
-      }
-      return entries;
-    }
+        /* Set the body and main container to take up the full viewport height */
+        body, .content-container {
+            height: 100vh;
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-900">
 
-    function escapeSingle(s) {
-      return String(s).replace(/\\/g,'\\\\').replace(/'/g, "\\'");
-    }
+    <!-- 1. The Video Element -->
+    <!-- Important attributes for background video:
+         - autoplay: Starts playback automatically.
+         - loop: Repeats the video indefinitely.
+         - muted: Essential! Browsers require videos to be muted to autoplay.
+         - playsinline: Required for autoplaying on many mobile devices (especially iOS).
+    -->
+    <video autoplay loop muted playsinline id="bg-video">
+        <!-- **IMPORTANT**: Replace this URL with the path to your own video file (MP4 recommended) -->
+        <source src="https://assets.mixkit.co/videos/preview/mixkit-beautiful-sky-with-clouds-over-the-ocean-at-sunset-40291-large.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
 
-    function saveToLocal(entriesArray) {
-      // We'll store an array of objects for convenience
-      const parsed = entriesArray.map(txt => {
-        // crude attempt to extract profilePic, username, sid from the generated text so localStorage holds structured data
-        const mPic = /profilePic: '([^']*)'/.exec(txt);
-        const mUser = /username: '([^']*)'/.exec(txt);
-        const mSid = /sid:'([^']*)'/.exec(txt);
-        return { profilePic: mPic?mPic[1]:'#', username: mUser?mUser[1]:'', sid: mSid?mSid[1]:'' };
-      });
-      localStorage.setItem('linkFormatter.entries', JSON.stringify(parsed));
-      return parsed;
-    }
+    <!-- 2. The Overlay -->
+    <!-- This overlay creates a dark mask over the video, making white text readable. -->
+    <div class="absolute inset-0 bg-black opacity-50 z-0"></div>
 
-    function loadSaved() {
-      try {
-        const raw = localStorage.getItem('linkFormatter.entries');
-        if (!raw) return [];
-        return JSON.parse(raw);
-      } catch(e){return []}
-    }
+    <!-- 3. Foreground Content -->
+    <!-- This container holds your main content, centered and styled for contrast. -->
+    <div class="content-container relative z-10 flex flex-col items-center justify-center text-center p-4">
+        <div class="max-w-4xl p-8 bg-white/10 backdrop-blur-sm rounded-xl shadow-2xl transition duration-300 hover:bg-white/20">
+            <h1 class="text-6xl font-extrabold text-white mb-4 leading-tight sm:text-7xl">
+                Discover the Digital Frontier
+            </h1>
+            <p class="text-xl text-gray-200 mb-8 sm:text-2xl">
+                Experience a smooth, continuous loop that sets the perfect mood for your story.
+            </p>
+            <a href="#" class="inline-block px-8 py-3 bg-indigo-600 text-white font-bold rounded-full text-lg shadow-lg hover:bg-indigo-700 transition transform hover:scale-105 duration-300">
+                Get Started Today
+            </a>
+        </div>
+        <p class="mt-8 text-sm text-gray-400">Scroll down for more content...</p>
+    </div>
 
-    // DOM
-    const rawEl = document.getElementById('raw');
-    const outEl = document.getElementById('output');
-    const savedEl = document.getElementById('saved');
-    const generateBtn = document.getElementById('generate');
-    const copyBtn = document.getElementById('copy');
-    const downloadBtn = document.getElementById('download');
-    const clearBtn = document.getElementById('clear');
+    <!-- Example of content that scrolls *over* the fixed background -->
+    <div class="relative z-10 bg-white p-12 mt-12">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Scrolling Content Section</h2>
+        <p class="text-gray-700 mb-4">
+            The section below the main landing page scrolls normally, while the background video stays fixed in place.
+        </p>
+        <div class="h-[100vh] bg-gray-100 p-8 rounded-lg flex items-center justify-center text-gray-500">
+            (Imagine more content here to force scrolling)
+        </div>
+    </div>
 
-    function refreshSavedView(){
-      const s = loadSaved();
-      if (!s.length) savedEl.textContent = '// none';
-      else savedEl.textContent = JSON.stringify(s, null, 2);
-    }
-
-    // Auto-load saved on open
-    (function(){
-      const savedText = loadSaved();
-      refreshSavedView();
-      // restore previous raw input if present
-      const prevRaw = localStorage.getItem('linkFormatter.raw');
-      if (prevRaw) rawEl.value = prevRaw;
-    })();
-
-    rawEl.addEventListener('input', ()=>{
-      localStorage.setItem('linkFormatter.raw', rawEl.value);
-    });
-
-    generateBtn.addEventListener('click', ()=>{
-      const mode = document.querySelector('input[name="type"]:checked').value;
-      const rows = parseRows(rawEl.value);
-      if (!rows.length) {
-        outEl.textContent = '// No valid rows found. Expected format: sid, username, link';
-        return;
-      }
-      const objs = buildObjects(rows, mode);
-      outEl.textContent = objs.join('\n');
-      const saved = saveToLocal(objs);
-      refreshSavedView();
-    });
-
-    copyBtn.addEventListener('click', async ()=>{
-      const txt = outEl.textContent || '';
-      try{
-        await navigator.clipboard.writeText(txt);
-        copyBtn.textContent = 'Copied!';
-        setTimeout(()=>copyBtn.textContent='Copy',900);
-      }catch(e){
-        alert('Copy failed: '+e.message);
-      }
-    });
-
-    downloadBtn.addEventListener('click', ()=>{
-      const saved = loadSaved();
-      const blob = new Blob([JSON.stringify(saved, null, 2)], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = 'link-formatter-entries.json';
-      document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-    });
-
-    clearBtn.addEventListener('click', ()=>{
-      if (!confirm('Clear raw input and saved entries?')) return;
-      rawEl.value = '';
-      outEl.textContent = '// Generated objects will appear here';
-      localStorage.removeItem('linkFormatter.raw');
-      localStorage.removeItem('linkFormatter.entries');
-      refreshSavedView();
-    });
-  </script></body>
+</body>
 </html>
